@@ -20,11 +20,21 @@ body {
   display: inline-block;
   font-size: 20pt;
   font-weight: bold;
+  border: 5px solid transparent;
 }
 
 .tag.highlight {
-  background-color: orange;
+  border: 5px solid orange;
 }
+
+.tag.expired {
+  background-color: red;
+}
+
+.tag.expiring {
+  background-color: yellow;
+}
+
 
 .edit {
   margin: 5%;

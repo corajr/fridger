@@ -74,6 +74,15 @@ function edit_tag(id) {
   }
 }
 
+function compare_times(a,b) {
+  if (moment(a.data.goodtill).isBefore(b.data.goodtill)) {
+    return -1;
+  } else if (moment(a.data.goodtill).isSame(b.data.goodtill)) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
 
 var Tags = {
   controller: function () {
@@ -98,12 +107,17 @@ var Tags = {
   view: function(ctrl) {
     return m("div",
              [m(".edit", Tags.edit_view(ctrl)),
-               m(".tags", tags().map(function (t) {
+              m(".tags", tags().sort(compare_times).map(function (t) {
                  if (t.id === editing()) {
                    var cl = ".tag.highlight";
                  } else {
                    var cl = ".tag";
                  }
+                if (moment().isAfter(moment(t.data.goodtill))) {
+                  cl = cl + ".expired";
+                } else if (moment().add(3, 'days').isAfter(t.data.goodtill)) {
+                  cl = cl + ".expiring";
+                }
                  return m(cl, { onclick: function () { edit_tag(t.id) } }, t.data.desc + " (" + t.data.percentage + "%) - " + moment(t.data.goodtill).fromNow());
                }))]);
   }
