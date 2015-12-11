@@ -9,55 +9,115 @@ function getTags() {
   }
 }
 
-function addTag(tag) {
-  var tags = getTags();
-  tags[tag] = 1;
-  localStorage["tags"] = JSON.stringify(tags);
+function clearTags() {
+  localStorage["tags"] = "{}";
 }
 
-function hasTag(tag) {
-  var tags = getTags();
-  return tags.hasOwnProperty(tag);
-}
-
-function createDom() {
-  var holder = document.getElementById("tags");
-  var fc = holder.firstChild;
-
-  while (fc) {
-    holder.removeChild(fc);
-    fc = holder.firstChild;
-  }
-
-  var tags = getTags();
-
-  Object.keys(tags).sort().forEach(function (tag) {
-    var p = document.createElement("p");
-    p.className = "tag-" + tag;
-    p.innerHTML = tag;
-    holder.appendChild(p);
+function loadTags(ts) {
+  return Object.keys(ts).map(function (t) {
+    return {id: t, props: {}, data: ts[t]};
   });
 }
 
-function flashTag(tag) {
-  var holder = document.getElementById("tags");
-  var elt = holder.querySelector(".tag-" + tag);
-  elt.setAttribute('style', "background-color: orange");
-  setTimeout(function () { elt.setAttribute('style', "background-color: transparent;"); }, 2000);
+var tags = m.prop(loadTags(getTags()));
+
+
+function addTag(tag) {
+  var ts = getTags();
+  ts[tag] = {desc: "", goodtill: moment().add(7, 'days'), percentage: 100};
+  localStorage["tags"] = JSON.stringify(ts);
+  tags(loadTags(ts));
+  m.redraw();
 }
 
+function hasTag(tag) {
+  var ts = getTags();
+  return ts.hasOwnProperty(tag);
+}
+
+
+function flashTag(tag) {
+  tags(tags().map(function (t) {
+    if (t.id === tag) {
+      return { id: t.id, highlight: true };
+    } else {
+      return t;
+    }
+  }));
+  setTimeout(function () {
+    tags(tags().map(function (t) {
+      if (t.id === tag) {
+        return { id: t.id, highlight: false };
+      } else {
+        return t;
+      }
+    }));
+
+    m.redraw();
+  }, 2000);
+
+  m.redraw();
+}
+
+var editing = m.prop(null);
+
+var edit = { desc: m.prop(null), percentage: m.prop(null), goodtill: m.prop(null)};
+
+function edit_tag(id) {
+  var ts = getTags();
+  var data = ts[id];
+  if (typeof data !== "undefined") {
+    edit.desc(data.desc);
+    edit.percentage(data.percentage);
+    edit.goodtill(moment(data.goodtill).format("YYYY-MM-DD"));
+    editing(id);
+  }
+}
+
+
+var Tags = {
+  controller: function () {
+    return { };
+  },
+  edit_view: function (ctrl) {
+    if (typeof editing() === "string") {
+      return [m("input", {onchange: m.withAttr("value", edit.desc), value: edit.desc()}),
+              m("input", {onchange: m.withAttr("value", edit.percentage), value: edit.percentage()}),
+              m("input", {onchange: m.withAttr("value", edit.goodtill), value: moment(edit.goodtill()).format("YYYY-MM-DD")}),
+              m("button", {onclick: function() {
+                var ts = getTags();
+                ts[editing()] = {desc: edit.desc(), goodtill: moment(edit.goodtill()), percentage: edit.percentage()};
+                localStorage["tags"] = JSON.stringify(ts);
+                tags(loadTags(ts));
+                editing(null);
+              }}, "Save")];
+    } else {
+      return [];
+    }
+  },
+  view: function(ctrl) {
+    return m("div",
+             [m(".edit", Tags.edit_view(ctrl)),
+               m(".tags", tags().map(function (t) {
+                 if (t.id === editing()) {
+                   var cl = ".tag.highlight";
+                 } else {
+                   var cl = ".tag";
+                 }
+                 return m(cl, { onclick: function () { edit_tag(t.id) } }, t.data.desc + " (" + t.data.percentage + "%) - " + moment(t.data.goodtill).fromNow());
+               }))]);
+  }
+};
 
 var app = {
   initialize: function() {
     this.bindEvents();
+    m.mount(document.getElementById("app"), Tags);
   },
   bindEvents: function() {
     document.addEventListener('deviceready', this.onDeviceReady, false);
   },
   onDeviceReady: function() {
-    app.receivedEvent('deviceready');
-
-    createDom();
 
     nfc.addNdefListener (
       function (nfcEvent) {
@@ -67,11 +127,12 @@ var app = {
         console.log(id);
 
         if (hasTag(id)) {
-          flashTag(id);
+          edit_tag(id);
         } else {
           addTag(id);
-          createDom();
+          edit_tag(id);
         }
+        m.redraw();
 
       },
       function () {
@@ -80,15 +141,5 @@ var app = {
         alert("Error adding NDEF listener " + JSON.stringify(error));
       }
     );
-  },
-  receivedEvent: function(id) {
-    var parentElement = document.getElementById(id);
-    var listeningElement = parentElement.querySelector('.listening');
-    var receivedElement = parentElement.querySelector('.received');
-
-    listeningElement.setAttribute('style', 'display:none;');
-    receivedElement.setAttribute('style', 'display:block;');
-
-    console.log('Received Event: ' + id);
   }
 };
