@@ -36,14 +36,58 @@ body {
 }
 
 
-.edit {
-  margin: 5%;
+.edit input, .edit button, .edit span {
+  font-size: 15pt;
 }
 
-.edit input, .edit button {
-  font-size: 20pt;
+.exit {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  padding: 5px;
 }
 
-button.active {
-  background-color: purple;
+.row {
+  width: 100%;
+  padding: 10px;
+}
+
+.row span {
+  display: inline-block;
+  width: 15%;
+  vertical-align: top;
+  text-align: right;
+}
+
+.row .field {
+  display: inline-block;
+  width: 80%;
+  padding: 0 2%;
+}
+
+.row .field input {
+  width: 86%;
+}
+
+.row .button {
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 0;
+  background-color: #eee;
+  display: inline-block;
+  font-size: 15pt;
+  width: 25%;
+}
+
+.row .button.active, .row .bar.active {
+  background-color: #9BDB91;
+}
+
+.bar {
+  display: inline-block;
+  width: 8%;
+  height: 30px;
+  border: 1px solid black;
 }

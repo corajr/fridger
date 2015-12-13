@@ -30,6 +30,14 @@ function addTag(tag) {
   m.redraw();
 }
 
+function deleteTag(tag) {
+  var ts = getTags();
+  delete ts[tag];
+  localStorage["tags"] = JSON.stringify(ts);
+  tags(loadTags(ts));
+  m.redraw();
+}
+
 function hasTag(tag) {
   var ts = getTags();
   return ts.hasOwnProperty(tag);
@@ -83,6 +91,13 @@ function edit_tag(id) {
   }
 }
 
+function save() {
+  var ts = getTags();
+  ts[editing()] = {desc: edit.desc(), goodtill: moment(edit.goodtill()), percentage: edit.percentage()};
+  localStorage["tags"] = JSON.stringify(ts);
+  tags(loadTags(ts));
+}
+
 function compare_times(a,b) {
   if (moment(a.data.goodtill).isBefore(b.data.goodtill)) {
     return -1;
@@ -93,45 +108,6 @@ function compare_times(a,b) {
   }
 }
 
-var pikaday = function (date) {
-  return function (el, isInitialized) {
-    if (isInitialized) {
-      return;
-    }
-
-    // Everything here is Pikaday-related...
-    var input = document.createElement('input');
-    input.className = "form-control";
-
-    if (Date.parse(date()) === NaN) {
-      var current = null;
-    } else {
-      var current = new Date(date());
-    }
-
-    function setValue() {
-      if (current) {
-        input.value = current.getFullYear() + "/" + (current.getMonth() + 1) + "/" + current.getDate();
-      }
-    }
-
-    setValue();
-
-    el.appendChild(input);
-
-    new Pikaday({defaultDate: current,
-                 field: input,
-                 onSelect: function () {
-	           // Except here, where we bind Pikaday's events back to the Mithril model
-	           date(this.getDate().toISOString());
-                   current = this.getDate();
-                   setValue();
-                   m.redraw();
-                 }
-                });
-  }
-};
-
 var Tags = {
   controller: function () {
     return { };
@@ -140,18 +116,22 @@ var Tags = {
     if (typeof editing() === "string") {
       return [m(".form",
                 [m(".row",[m("span", "desc"),
-                           m(".field", m("input", {onchange: m.withAttr("value", edit.desc), value: edit.desc()}))]),
+                           m(".field", m("input", {onchange: function (e) {
+                             edit.desc(e.target.value);
+                             save();
+                           }, value: edit.desc()}))]),
                  m(".row",[m("span", "good for"),
                            m(".field",
-                             [[0, 1, "bad"], [1, 3, "1 day"],[3, 5, "3 days"],[5, 7, "5 days"], [7, 14, "1 week"], [14, 21, "2 weeks"],
-                              [21, 31, "3 weeks"], [31, 61, "1 month"], [61, 92, "2 months"], [92, 300, "3 months"]].map(function(e) {
+                             [[0, 1, "it's bad"], [1, 3, "1 day"],[3, 5, "3 days"],[5, 7, "5 days"], [7, 14, "1 week"], [14, 21, "2 weeks"],
+                              [21, 31, "3 weeks"], [31, 61, "1 month"], [61, 92, "2 months"], [92, 182, "3 months"], [182, 365, "6 months"], [365, 900, "1 year"]].map(function(e) {
                                 if (moment(edit.goodtill()).isBetween(moment().add(e[0], 'days'), moment().add(e[1], 'days'))) {
                                   var cls = "active";
                                 } else {
                                   var cls = "";
                                 }
-                                return m("button", {class: cls, onclick: function () {
+                                return m(".button", {class: cls, onclick: function () {
                                   edit.goodtill(moment().add(e[0], 'days').add(10, 'minutes'));
+                                  save();
                                 }}, e[2]);
                               }))]),
                  m(".row", [m("span", "amount left"),
@@ -162,18 +142,18 @@ var Tags = {
                                 } else {
                                   var cls = "";
                                 }
-                                return m("button", {class: cls, onclick: function () {
+                                return m(".bar", {class: cls, onclick: function () {
                                   edit.percentage(e);
+                                  save();
                                 }}, "");
                               }))]),
-                 m(".row",
-                   m("button", {onclick: function() {
-                     var ts = getTags();
-                     ts[editing()] = {desc: edit.desc(), goodtill: moment(edit.goodtill()), percentage: edit.percentage()};
-                     localStorage["tags"] = JSON.stringify(ts);
-                     tags(loadTags(ts));
-                     editing(null);
-                   }}, "Save"))]),
+                 m(".row", [m("span", "delete"),
+                            m(".field",
+                              m("button", { onclick: function () {
+                                deleteTag(editing());
+                                editing(null);
+                              }}, "THIS ITEM IS USED UP"))])
+                ]),
               m(".exit",
                 m("button", {onclick: function() {
                   editing(null);
