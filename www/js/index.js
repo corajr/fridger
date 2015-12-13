@@ -167,17 +167,22 @@ var Tags = {
       return m(".edit", Tags.edit_view(ctrl))
     } else {
       return m(".tags", tags().sort(compare_times).map(function (t) {
-        if (t.id === editing()) {
-          var cl = ".tag.highlight";
-        } else {
-          var cl = ".tag";
-        }
+        var cl = ".tag";
         if (moment().isAfter(moment(t.data.goodtill))) {
           cl = cl + ".expired";
         } else if (moment().add(3, 'days').isAfter(t.data.goodtill)) {
           cl = cl + ".expiring";
         }
-        return m(cl, { onclick: function () { edit_tag(t.id) } }, t.data.desc + " (" + t.data.percentage + "%) - " + moment(t.data.goodtill).fromNow());
+        return m(cl, { onclick: function () { edit_tag(t.id) } },
+                 [m(".left", [m(".desc", t.data.desc),
+                              m(".goodtill", moment(t.data.goodtill).fromNow(true))]),
+                  m(".percentage", [100,90,80,70,60,50,40,30,20,10].map(function(e) {
+                    if (t.data.percentage >= e) {
+                      return m(".bar.active");
+                    } else {
+                      return m(".bar");
+                    }
+                  }))]);
       }));
     }
   }
