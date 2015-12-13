@@ -35,6 +35,15 @@ function hasTag(tag) {
   return ts.hasOwnProperty(tag);
 }
 
+function tagSeen(tag) {
+  if (hasTag(id)) {
+    edit_tag(id);
+  } else {
+    addTag(id);
+    edit_tag(id);
+  }
+  m.redraw();
+}
 
 function flashTag(tag) {
   tags(tags().map(function (t) {
@@ -84,42 +93,113 @@ function compare_times(a,b) {
   }
 }
 
+var pikaday = function (date) {
+  return function (el, isInitialized) {
+    if (isInitialized) {
+      return;
+    }
+
+    // Everything here is Pikaday-related...
+    var input = document.createElement('input');
+    input.className = "form-control";
+
+    if (Date.parse(date()) === NaN) {
+      var current = null;
+    } else {
+      var current = new Date(date());
+    }
+
+    function setValue() {
+      if (current) {
+        input.value = current.getFullYear() + "/" + (current.getMonth() + 1) + "/" + current.getDate();
+      }
+    }
+
+    setValue();
+
+    el.appendChild(input);
+
+    new Pikaday({defaultDate: current,
+                 field: input,
+                 onSelect: function () {
+	           // Except here, where we bind Pikaday's events back to the Mithril model
+	           date(this.getDate().toISOString());
+                   current = this.getDate();
+                   setValue();
+                   m.redraw();
+                 }
+                });
+  }
+};
+
 var Tags = {
   controller: function () {
     return { };
   },
   edit_view: function (ctrl) {
     if (typeof editing() === "string") {
-      return [m("input", {onchange: m.withAttr("value", edit.desc), value: edit.desc()}),
-              m("input", {onchange: m.withAttr("value", edit.percentage), value: edit.percentage()}),
-              m("input", {onchange: m.withAttr("value", edit.goodtill), value: moment(edit.goodtill()).format("YYYY-MM-DD")}),
-              m("button", {onclick: function() {
-                var ts = getTags();
-                ts[editing()] = {desc: edit.desc(), goodtill: moment(edit.goodtill()), percentage: edit.percentage()};
-                localStorage["tags"] = JSON.stringify(ts);
-                tags(loadTags(ts));
-                editing(null);
-              }}, "Save")];
+      return [m(".form",
+                [m(".row",[m("span", "desc"),
+                           m(".field", m("input", {onchange: m.withAttr("value", edit.desc), value: edit.desc()}))]),
+                 m(".row",[m("span", "good for"),
+                           m(".field",
+                             [[0, 1, "bad"], [1, 3, "1 day"],[3, 5, "3 days"],[5, 7, "5 days"], [7, 14, "1 week"], [14, 21, "2 weeks"],
+                              [21, 31, "3 weeks"], [31, 61, "1 month"], [61, 92, "2 months"], [92, 300, "3 months"]].map(function(e) {
+                                if (moment(edit.goodtill()).isBetween(moment().add(e[0], 'days'), moment().add(e[1], 'days'))) {
+                                  var cls = "active";
+                                } else {
+                                  var cls = "";
+                                }
+                                return m("button", {class: cls, onclick: function () {
+                                  edit.goodtill(moment().add(e[0], 'days').add(10, 'minutes'));
+                                }}, e[2]);
+                              }))]),
+                 m(".row", [m("span", "amount left"),
+                            m(".field",
+                              [0,10,20,30,40,50,60,70,80,90,100].map(function(e) {
+                                if (edit.percentage() >= e) {
+                                  var cls = "active";
+                                } else {
+                                  var cls = "";
+                                }
+                                return m("button", {class: cls, onclick: function () {
+                                  edit.percentage(e);
+                                }}, "");
+                              }))]),
+                 m(".row",
+                   m("button", {onclick: function() {
+                     var ts = getTags();
+                     ts[editing()] = {desc: edit.desc(), goodtill: moment(edit.goodtill()), percentage: edit.percentage()};
+                     localStorage["tags"] = JSON.stringify(ts);
+                     tags(loadTags(ts));
+                     editing(null);
+                   }}, "Save"))]),
+              m(".exit",
+                m("button", {onclick: function() {
+                  editing(null);
+                }}, "X"))];
     } else {
       return [];
     }
   },
   view: function(ctrl) {
-    return m("div",
-             [m(".edit", Tags.edit_view(ctrl)),
-              m(".tags", tags().sort(compare_times).map(function (t) {
-                 if (t.id === editing()) {
-                   var cl = ".tag.highlight";
-                 } else {
-                   var cl = ".tag";
-                 }
-                if (moment().isAfter(moment(t.data.goodtill))) {
-                  cl = cl + ".expired";
-                } else if (moment().add(3, 'days').isAfter(t.data.goodtill)) {
-                  cl = cl + ".expiring";
-                }
-                 return m(cl, { onclick: function () { edit_tag(t.id) } }, t.data.desc + " (" + t.data.percentage + "%) - " + moment(t.data.goodtill).fromNow());
-               }))]);
+    if (editing() !== null) {
+      return m(".edit", Tags.edit_view(ctrl))
+    } else {
+      return m(".tags", tags().sort(compare_times).map(function (t) {
+        if (t.id === editing()) {
+          var cl = ".tag.highlight";
+        } else {
+          var cl = ".tag";
+        }
+        if (moment().isAfter(moment(t.data.goodtill))) {
+          cl = cl + ".expired";
+        } else if (moment().add(3, 'days').isAfter(t.data.goodtill)) {
+          cl = cl + ".expiring";
+        }
+        return m(cl, { onclick: function () { edit_tag(t.id) } }, t.data.desc + " (" + t.data.percentage + "%) - " + moment(t.data.goodtill).fromNow());
+      }));
+    }
   }
 };
 
@@ -133,27 +213,22 @@ var app = {
   },
   onDeviceReady: function() {
 
-    nfc.addNdefListener (
-      function (nfcEvent) {
-        var tag = nfcEvent.tag,
-            id = nfc.bytesToHexString(tag.id);
+    // NOTE(dbp 2015-12-13): To facilitate testing off-device, only add event handlers if nfc present
 
-        console.log(id);
+    if (typeof nfc !== "undefined") {
+      nfc.addNdefListener (
+        function (nfcEvent) {
+          var tag = nfcEvent.tag,
+              id = nfc.bytesToHexString(tag.id);
 
-        if (hasTag(id)) {
-          edit_tag(id);
-        } else {
-          addTag(id);
-          edit_tag(id);
+          tagSeen(id);
+        },
+        function () {
+        },
+        function (error) {
+          alert("Error adding NDEF listener " + JSON.stringify(error));
         }
-        m.redraw();
-
-      },
-      function () {
-      },
-      function (error) {
-        alert("Error adding NDEF listener " + JSON.stringify(error));
-      }
-    );
+      );
+    }
   }
 };

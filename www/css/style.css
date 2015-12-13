@@ -43,3 +43,7 @@ body {
 .edit input, .edit button {
   font-size: 20pt;
 }
+
+button.active {
+  background-color: purple;
+}

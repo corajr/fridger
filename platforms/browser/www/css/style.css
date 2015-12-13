@@ -1,0 +1,45 @@
+body {
+  background-attachment:fixed;
+  font-family:'HelveticaNeue-Light', 'HelveticaNeue', Helvetica, Arial, sans-serif;
+  font-size:12px;
+  height:100%;
+  margin:0px;
+  padding:0px;
+  text-transform:uppercase;
+  width:100%;
+}
+
+.tags {
+  margin: 5%;
+}
+
+.tag {
+  background-color: #50C878;
+  padding: 20px;
+  margin: 20px;
+  display: inline-block;
+  font-size: 20pt;
+  font-weight: bold;
+  border: 5px solid transparent;
+}
+
+.tag.highlight {
+  border: 5px solid orange;
+}
+
+.tag.expired {
+  background-color: red;
+}
+
+.tag.expiring {
+  background-color: yellow;
+}
+
+
+.edit {
+  margin: 5%;
+}
+
+.edit input, .edit button {
+  font-size: 20pt;
+}
