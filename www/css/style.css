@@ -4,9 +4,10 @@ body {
   font-size:12px;
   height:100%;
   margin:0px;
-  padding:0px;
-  text-transform:uppercase;
+  padding:20px;
+  text-transform: uppercase;
   width:100%;
+  background-color: #A7DBD8;
 }
 
 
@@ -18,13 +19,13 @@ body {
   font-size: 14pt;
   padding: 5px;
   margin: 5px;
-  border: 1px solid #ccc;
-  background-color: #efefef;
+  border: 1px solid #666;;
+  background-color: #E0E4CC;
+  position: relative;
 }
 
-
 .tag.expired {
-  background-color: #DB9191;
+  background-color: #FA6900;
 }
 
 .tag.expiring {
@@ -37,8 +38,10 @@ body {
 }
 
 .tag .goodtill {
-  font-size: 12pt;
-  padding-top: 20px;
+  position: absolute;
+  font-size: 20pt;
+  bottom: 10px;
+  left: 10px;
 }
 
 .tag .percentage {
@@ -51,24 +54,57 @@ body {
 .tag .percentage .bar {
   width: 100%;
   height: 8%;
-  border: 1px solid #ccc;
+  border: 1px solid #666;
+  border-top: 0;
 }
 
+.tag .percentage .bar:first-child {
+  border-top: 1px solid #666;
+}
+
+
+.edit {
+  border: 1px solid #666;
+  position: relative;
+  padding: 10px;
+  margin: 10px auto;
+  width: 90%;
+}
+
+.edit.good {
+  background-color: #E0E4CC;
+}
+
+.edit.close {
+  background-color: #E7EA8B;
+}
+
+.edit.bad {
+  background-color: #FA6900;
+}
 
 .edit input, .edit button, .edit span {
   font-size: 15pt;
+  text-transform:uppercase;
 }
 
 .exit {
-  position: fixed;
+  position: absolute;
   top: 0px;
   right: 0px;
-  padding: 5px;
+  padding: 5px 10px;
+  border-bottom: 1px solid #666;
+  border-left: 1px solid #666;
+  background-color: #69D2E7;
+}
+
+.exit span {
+  font-size: 40pt;
 }
 
 .row {
   width: 100%;
-  padding: 10px;
+  padding: 25px 10px;
 }
 
 .row span {
@@ -94,19 +130,24 @@ body {
   margin-bottom: 10px;
   padding: 5px;
   border: 0;
-  background-color: #eee;
+  background-color: #A7DBD8;
   display: inline-block;
   font-size: 15pt;
   width: 25%;
 }
 
 .button.active, .bar.active {
-  background-color: #9BDB91;
+  background-color: #69D2E7;
+}
+
+button.delete {
+  background-color: #F38630;
+  border: 0;
 }
 
 .row .bar {
   display: inline-block;
   width: 8%;
   height: 30px;
-  border: 1px solid black;
+  border: 1px solid #A7DBD8;
 }

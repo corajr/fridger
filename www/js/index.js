@@ -14,8 +14,10 @@ function orderedWords(match) {
   var arrs = Object.keys(words).filter(function(w) {
     if (typeof match === "undefined") {
       return true;
+    } else if (w === match) {
+      return false;
     } else {
-      return  w.indexOf(match) !== -1;
+      return w.indexOf(match) !== -1;
     }
   }).map(function(w) {
     return [w, words[w]];
@@ -39,6 +41,9 @@ function modWords(sentance, n) {
       words[word] = n;
     } else {
       words[word] = words[word] + n;
+    }
+    if (words[word] <= 0) {
+      delete words[word];
     }
   });
   localStorage["words"] = JSON.stringify(words);
@@ -93,11 +98,11 @@ function hasTag(tag) {
 }
 
 function tagSeen(tag) {
-  if (hasTag(id)) {
-    edit_tag(id);
+  if (hasTag(tag)) {
+    edit_tag(tag);
   } else {
-    addTag(id);
-    edit_tag(id);
+    addTag(tag);
+    edit_tag(tag);
   }
   m.redraw();
 }
@@ -146,17 +151,18 @@ var Tags = {
   edit_view: function (ctrl) {
     if (typeof editing() === "string") {
       if (descing() !== null) {
-        var desc_options = [m("span", ""),
-                            m(".field", orderedWords(descing()).map(function(w) {
-                              return m(".button", {onclick: function() {
-                                if (/ $/.test(edit.desc()) || edit.desc() === "") {
-                                  edit.desc(edit.desc() + w);
-                                } else {
-                                  edit.desc(edit.desc() + " " + w);
-                                }
-                                save();
-                              }}, w);
-                            }))];
+        var desc_options = m(".row",
+                             [m("span", ""),
+                              m(".field", orderedWords(descing()).map(function(w) {
+                                return m(".button", {onclick: function() {
+                                  if (/ $/.test(edit.desc()) || edit.desc() === "") {
+                                    edit.desc(edit.desc() + w);
+                                  } else {
+                                    edit.desc(edit.desc() + " " + w);
+                                  }
+                                  save();
+                                }}, w);
+                              }))]);
       } else {
         var desc_options = [];
       }
@@ -177,16 +183,19 @@ var Tags = {
                                  descing(a[a.length - 1]);
                                }
                                save();
-                             }, value: edit.desc()}))]),
-                 m(".row", desc_options),
+                             }, value: edit.desc()})),
+                           desc_options]),
                  m(".row",[m("span", "good for"),
                            m(".field",
-                             [[0, 1, "it's bad"], [1, 3, "1 day"],[3, 5, "3 days"],[5, 7, "5 days"], [7, 14, "1 week"], [14, 21, "2 weeks"],
+                             [[-1000, 1, "it's bad", "bad"], [1, 3, "1 day"],[3, 5, "3 days"],[5, 7, "5 days"], [7, 14, "1 week"], [14, 21, "2 weeks"],
                               [21, 31, "3 weeks"], [31, 61, "1 month"], [61, 92, "2 months"], [92, 182, "3 months"], [182, 365, "6 months"], [365, 900, "1 year"]].map(function(e) {
                                 if (moment(edit.goodtill()).isBetween(moment().add(e[0], 'days'), moment().add(e[1], 'days'))) {
                                   var cls = "active";
                                 } else {
                                   var cls = "";
+                                }
+                                if (e[3]) {
+                                  cls = cls + " " + e[3];
                                 }
                                 return m(".button", {class: cls, onclick: function () {
                                   edit.goodtill(moment().add(e[0], 'days').add(10, 'minutes'));
@@ -208,14 +217,15 @@ var Tags = {
                               }))]),
                  m(".row", [m("span", "delete"),
                             m(".field",
-                              m("button", { onclick: function () {
+                              m("button.delete", { onclick: function () {
                                 deleteTag(editing());
                                 editing(null);
                               }}, "THIS ITEM IS USED UP"))])
                 ]),
               m(".exit",
-                m("button", {onclick: function() {
+                m("span", {onclick: function() {
                   editing(null);
+                  descing(null);
                 }}, "X"))];
     } else {
       return [];
@@ -223,20 +233,31 @@ var Tags = {
   },
   view: function(ctrl) {
     if (editing() !== null) {
-      return m(".edit", {onclick: function () {
-        descing(false);
+      if (moment().isAfter(moment(edit.goodtill()))) {
+        var date_cls = ".bad";
+      } else if (moment().add(3, 'days').isAfter(edit.goodtill())) {
+        var date_cls = ".close";
+      } else {
+        var date_cls = ".good";
+      }
+      return m(".edit" + date_cls, {onclick: function () {
+        descing(null);
       }}, Tags.edit_view(ctrl))
     } else {
       return m(".tags", tags().sort(compare_times).map(function (t) {
         var cl = ".tag";
         if (moment().isAfter(moment(t.data.goodtill))) {
           cl = cl + ".expired";
+          var goodtill = "IT'S BAD";
         } else if (moment().add(3, 'days').isAfter(t.data.goodtill)) {
           cl = cl + ".expiring";
+          var goodtill = moment(t.data.goodtill).fromNow(true);
+        } else {
+          var goodtill = moment(t.data.goodtill).fromNow(true);
         }
         return m(cl, { onclick: function () { edit_tag(t.id) } },
                  [m(".left", [m(".desc", t.data.desc),
-                              m(".goodtill", moment(t.data.goodtill).fromNow(true))]),
+                              m(".goodtill", goodtill)]),
                   m(".percentage", [100,90,80,70,60,50,40,30,20,10].map(function(e) {
                     if (t.data.percentage >= e) {
                       return m(".bar.active");

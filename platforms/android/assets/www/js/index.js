@@ -1,3 +1,52 @@
+function getWords() {
+  try {
+    var words = JSON.parse(localStorage["words"]);
+  } catch (_) {
+    localStorage["words"] = JSON.stringify({});
+    words = {};
+  } finally {
+    return words;
+  }
+}
+
+function orderedWords(match) {
+  var words = getWords();
+  var arrs = Object.keys(words).filter(function(w) {
+    if (typeof match === "undefined") {
+      return true;
+    } else {
+      return  w.indexOf(match) !== -1;
+    }
+  }).map(function(w) {
+    return [w, words[w]];
+  });
+  return arrs.sort(function (a,b) {
+    if (a[1] > b[1]) {
+      return -1;
+    } else if (a[1] < b[1]) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }).map(function (p) { return p[0]; });
+}
+
+function modWords(sentance, n) {
+  var words = getWords();
+  sentance.replace(".", "").replace(",","").split(" ").map(function(w) {
+    var word = w.toLowerCase();
+    if (typeof words[word] === "undefined") {
+      words[word] = n;
+    } else {
+      words[word] = words[word] + n;
+    }
+  });
+  localStorage["words"] = JSON.stringify(words);
+}
+
+var addWords = function(sentance) { modWords(sentance, 1); };
+var removeWords = function(sentance) { modWords(sentance, -1); };
+
 function getTags() {
   try {
     var tags = JSON.parse(localStorage["tags"]);
@@ -30,45 +79,32 @@ function addTag(tag) {
   m.redraw();
 }
 
+function deleteTag(tag) {
+  var ts = getTags();
+  delete ts[tag];
+  localStorage["tags"] = JSON.stringify(ts);
+  tags(loadTags(ts));
+  m.redraw();
+}
+
 function hasTag(tag) {
   var ts = getTags();
   return ts.hasOwnProperty(tag);
 }
 
 function tagSeen(tag) {
-  if (hasTag(id)) {
-    edit_tag(id);
+  if (hasTag(tag)) {
+    edit_tag(tag);
   } else {
-    addTag(id);
-    edit_tag(id);
+    addTag(tag);
+    edit_tag(tag);
   }
   m.redraw();
 }
 
-function flashTag(tag) {
-  tags(tags().map(function (t) {
-    if (t.id === tag) {
-      return { id: t.id, highlight: true };
-    } else {
-      return t;
-    }
-  }));
-  setTimeout(function () {
-    tags(tags().map(function (t) {
-      if (t.id === tag) {
-        return { id: t.id, highlight: false };
-      } else {
-        return t;
-      }
-    }));
-
-    m.redraw();
-  }, 2000);
-
-  m.redraw();
-}
-
 var editing = m.prop(null);
+
+var descing = m.prop(null);
 
 var edit = { desc: m.prop(null), percentage: m.prop(null), goodtill: m.prop(null)};
 
@@ -81,6 +117,16 @@ function edit_tag(id) {
     edit.goodtill(moment(data.goodtill).format("YYYY-MM-DD"));
     editing(id);
   }
+}
+
+function save() {
+  var ts = getTags();
+  var old = ts[editing()];
+  ts[editing()] = {desc: edit.desc(), goodtill: moment(edit.goodtill()), percentage: edit.percentage()};
+  removeWords(old.desc);
+  addWords(edit.desc());
+  localStorage["tags"] = JSON.stringify(ts);
+  tags(loadTags(ts));
 }
 
 function compare_times(a,b) {
@@ -99,36 +145,107 @@ var Tags = {
   },
   edit_view: function (ctrl) {
     if (typeof editing() === "string") {
-      return [m("input", {onchange: m.withAttr("value", edit.desc), value: edit.desc()}),
-              m("input", {onchange: m.withAttr("value", edit.percentage), value: edit.percentage()}),
-              m("input", {onchange: m.withAttr("value", edit.goodtill), value: moment(edit.goodtill()).format("YYYY-MM-DD")}),
-              m("button", {onclick: function() {
-                var ts = getTags();
-                ts[editing()] = {desc: edit.desc(), goodtill: moment(edit.goodtill()), percentage: edit.percentage()};
-                localStorage["tags"] = JSON.stringify(ts);
-                tags(loadTags(ts));
-                editing(null);
-              }}, "Save")];
+      if (descing() !== null) {
+        var desc_options = [m("span", ""),
+                            m(".field", orderedWords(descing()).map(function(w) {
+                              return m(".button", {onclick: function() {
+                                if (/ $/.test(edit.desc()) || edit.desc() === "") {
+                                  edit.desc(edit.desc() + w);
+                                } else {
+                                  edit.desc(edit.desc() + " " + w);
+                                }
+                                save();
+                              }}, w);
+                            }))];
+      } else {
+        var desc_options = [];
+      }
+      return [m(".form",
+                [m(".row",[m("span", "desc"),
+                           m(".field", m("input", {
+                             onclick: function(e) {
+                               e.stopPropagation();
+                             },
+                             onfocus: function () {
+                               descing("");
+                             },
+                             onkeyup: function (e) {
+                               var v = e.target.value;
+                               edit.desc(v);
+                               if (v[v.length - 1] !== ' ') {
+                                 var a = v.split(" ");
+                                 descing(a[a.length - 1]);
+                               }
+                               save();
+                             }, value: edit.desc()}))]),
+                 m(".row", desc_options),
+                 m(".row",[m("span", "good for"),
+                           m(".field",
+                             [[0, 1, "it's bad"], [1, 3, "1 day"],[3, 5, "3 days"],[5, 7, "5 days"], [7, 14, "1 week"], [14, 21, "2 weeks"],
+                              [21, 31, "3 weeks"], [31, 61, "1 month"], [61, 92, "2 months"], [92, 182, "3 months"], [182, 365, "6 months"], [365, 900, "1 year"]].map(function(e) {
+                                if (moment(edit.goodtill()).isBetween(moment().add(e[0], 'days'), moment().add(e[1], 'days'))) {
+                                  var cls = "active";
+                                } else {
+                                  var cls = "";
+                                }
+                                return m(".button", {class: cls, onclick: function () {
+                                  edit.goodtill(moment().add(e[0], 'days').add(10, 'minutes'));
+                                  save();
+                                }}, e[2]);
+                              }))]),
+                 m(".row", [m("span", "amount left"),
+                            m(".field",
+                              [0,10,20,30,40,50,60,70,80,90,100].map(function(e) {
+                                if (edit.percentage() >= e) {
+                                  var cls = "active";
+                                } else {
+                                  var cls = "";
+                                }
+                                return m(".bar", {class: cls, onclick: function () {
+                                  edit.percentage(e);
+                                  save();
+                                }}, "");
+                              }))]),
+                 m(".row", [m("span", "delete"),
+                            m(".field",
+                              m("button", { onclick: function () {
+                                deleteTag(editing());
+                                editing(null);
+                              }}, "THIS ITEM IS USED UP"))])
+                ]),
+              m(".exit",
+                m("button", {onclick: function() {
+                  editing(null);
+                }}, "X"))];
     } else {
       return [];
     }
   },
   view: function(ctrl) {
-    return m("div",
-             [m(".edit", Tags.edit_view(ctrl)),
-              m(".tags", tags().sort(compare_times).map(function (t) {
-                 if (t.id === editing()) {
-                   var cl = ".tag.highlight";
-                 } else {
-                   var cl = ".tag";
-                 }
-                if (moment().isAfter(moment(t.data.goodtill))) {
-                  cl = cl + ".expired";
-                } else if (moment().add(3, 'days').isAfter(t.data.goodtill)) {
-                  cl = cl + ".expiring";
-                }
-                 return m(cl, { onclick: function () { edit_tag(t.id) } }, t.data.desc + " (" + t.data.percentage + "%) - " + moment(t.data.goodtill).fromNow());
-               }))]);
+    if (editing() !== null) {
+      return m(".edit", {onclick: function () {
+        descing(false);
+      }}, Tags.edit_view(ctrl))
+    } else {
+      return m(".tags", tags().sort(compare_times).map(function (t) {
+        var cl = ".tag";
+        if (moment().isAfter(moment(t.data.goodtill))) {
+          cl = cl + ".expired";
+        } else if (moment().add(3, 'days').isAfter(t.data.goodtill)) {
+          cl = cl + ".expiring";
+        }
+        return m(cl, { onclick: function () { edit_tag(t.id) } },
+                 [m(".left", [m(".desc", t.data.desc),
+                              m(".goodtill", moment(t.data.goodtill).fromNow(true))]),
+                  m(".percentage", [100,90,80,70,60,50,40,30,20,10].map(function(e) {
+                    if (t.data.percentage >= e) {
+                      return m(".bar.active");
+                    } else {
+                      return m(".bar");
+                    }
+                  }))]);
+      }));
+    }
   }
 };
 

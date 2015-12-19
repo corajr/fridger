@@ -4,42 +4,114 @@ body {
   font-size:12px;
   height:100%;
   margin:0px;
-  padding:0px;
+  padding:20px;
   text-transform:uppercase;
   width:100%;
 }
 
-.tags {
-  margin: 5%;
-}
 
 .tag {
-  background-color: #50C878;
-  padding: 20px;
-  margin: 20px;
+  width: 20%;
+  height: 150px;
   display: inline-block;
-  font-size: 20pt;
-  font-weight: bold;
-  border: 5px solid transparent;
+  vertical-align: top;
+  font-size: 14pt;
+  padding: 5px;
+  margin: 5px;
+  border: 1px solid #ccc;
+  background-color: #efefef;
 }
 
-.tag.highlight {
-  border: 5px solid orange;
-}
 
 .tag.expired {
-  background-color: red;
+  background-color: #DB9191;
 }
 
 .tag.expiring {
-  background-color: yellow;
+  background-color: #E7EA8B;
+}
+
+.tag .left {
+  width: 80%;
+  display: inline-block;
+}
+
+.tag .goodtill {
+  font-size: 12pt;
+  padding-top: 20px;
+}
+
+.tag .percentage {
+  display: inline-block;
+  vertical-align: top;
+  width: 15%;
+  height: inherit;
+}
+
+.tag .percentage .bar {
+  width: 100%;
+  height: 8%;
+  border: 1px solid #ccc;
 }
 
 
-.edit {
-  margin: 5%;
+.edit input, .edit button, .edit span {
+  font-size: 15pt;
 }
 
-.edit input, .edit button {
-  font-size: 20pt;
+.exit {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  padding: 5px;
+}
+
+.exit button {
+  font-size: 2em;
+  padding: 20px;
+}
+
+.row {
+  width: 100%;
+  padding: 10px;
+}
+
+.row span {
+  display: inline-block;
+  width: 15%;
+  vertical-align: top;
+  text-align: right;
+}
+
+.row .field {
+  display: inline-block;
+  width: 80%;
+  padding: 0 2%;
+}
+
+.row .field input {
+  width: 86%;
+}
+
+.row .button {
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 0;
+  background-color: #eee;
+  display: inline-block;
+  font-size: 15pt;
+  width: 25%;
+}
+
+.button.active, .bar.active {
+  background-color: #9BDB91;
+}
+
+.row .bar {
+  display: inline-block;
+  width: 8%;
+  height: 30px;
+  border: 1px solid black;
 }
