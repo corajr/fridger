@@ -158,9 +158,14 @@ var Tags = {
                                   if (/ $/.test(edit.desc()) || edit.desc() === "") {
                                     edit.desc(edit.desc() + w);
                                   } else {
-                                    edit.desc(edit.desc() + " " + w);
+                                    var before = edit.desc().split(" ").slice(0,-1).join(" ");
+                                    if (before !== "") {
+                                      before = before + " ";
+                                    }
+                                    edit.desc(before + w);
                                   }
                                   save();
+                                  document.getElementById("description").focus();
                                 }}, w);
                               }))]);
       } else {
@@ -169,6 +174,10 @@ var Tags = {
       return [m(".form",
                 [m(".row",[m("span", "desc"),
                            m(".field", m("input", {
+                             autocomplete: "off",
+                             autocorrect: "off",
+                             autocapitalize: "off",
+                             spellcheck: "false",
                              onclick: function(e) {
                                e.stopPropagation();
                              },
@@ -176,11 +185,14 @@ var Tags = {
                                descing("");
                              },
                              onkeyup: function (e) {
-                               var v = e.target.value;
+                               var v = e.target.value.toLowerCase();
+                               console.log(v);
                                edit.desc(v);
                                if (v[v.length - 1] !== ' ') {
-                                 var a = v.split(" ");
-                                 descing(a[a.length - 1]);
+                                 var a = v.split(" ").slice(-1)[0];
+                                 descing(a);
+                               } else {
+                                 descing("");
                                }
                                save();
                              }, value: edit.desc()})),
