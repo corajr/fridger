@@ -182,7 +182,7 @@ var Tags = {
                                e.stopPropagation();
                              },
                              onfocus: function () {
-                               descing("");
+                               descing((edit.desc() || "").split(" ").slice(-1)[0]);
                              },
                              onkeyup: function (e) {
                                var v = e.target.value.toLowerCase();
@@ -195,7 +195,8 @@ var Tags = {
                                  descing("");
                                }
                                save();
-                             }, value: edit.desc()})),
+                             }, value: edit.desc(),
+                             id: "description"})),
                            desc_options]),
                  m(".row",[m("span", "good for"),
                            m(".field",
